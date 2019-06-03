@@ -1,6 +1,7 @@
 import requests
 import time
 from lxml import etree
+import json
 
 login_url = "http://passport.transrush.com/Login.aspx"
 
@@ -13,14 +14,37 @@ headers = {
 session = requests.session()
 res = session.get(url=login_url,headers=headers)
 
-all_url = ""
+all_url = "http://member.transrush.com/Ajax/AjaxTransportInfo.aspx?actionType=1&pidx=1&psize=10&day=180&pid=&wid=&orderno=&tuid=970346&time=1559549108802"
 
-mulit = "http://member.transrush.com/Member/parcelDetail.aspx?fromTab=dqs&orderNo=DD190309462680"
-mulit_html = etree.HTML(session.get(url=mulit,headers=headers).text)
 
-tr_elements = mulit_html.xpath("//dl[@class='detail']/dd/table/tr")
-for i in tr_elements:
-    if i.attrib != "":
-        print(i.xpath("./td[3]/@title")[0])
+
+def product_detail(orderNo):
+    order_url = "http://member.transrush.com/Member/parcelDetail.aspx?fromTab=dqs&orderNo=" + orderNo
+    product_html = etree.HTML(session.get(url=order_url, headers=headers).text)
+    trs_list = product_html.xpath("//dl[@class='detail']/dd/table/tr")
+    order_status = product_html.xpath("//*[@id='detail']/ul/li[1]/span[2]/strong/text()")[0].strip()
+    order_address = product_html.xpath("//*[@id='detail']/dl[1]/dd/ul/li[2]/span[2]/text()")[0].strip()
+    order_track_No = product_html.xpath("//*[@id='detail']/dl[2]/dd/ul/li[3]/span[2]/text()")[0].strip()
+    order_address = product_html.xpath("//*[@id='detail']/dl[2]/dd/ul/li[4]/span[2]/text()")[0].strip()
+    order_time = product_html.xpath("//*[@id='detail']/dl[2]/dd/ul/li[6]/span[2]/text()")[0].strip()
+    order_price = product_html.xpath("//*[@id='detail']/dl[2]/dd/ul/li[7]/span[2]/text()")[0].strip()
+
+    # order_details = product_html.xpath("//*[@id='detail']/dl[2]/dd/ul[@class='clearfix']/li")
+    # for d in range(1,7):
+    #     print(order_details[d].xpath("./span[2]/text()")[0].strip())
+
+    for i in trs_list:
+        if i.attrib != "":
+            print(order_time,orderNo,order_status,order_track_No,i.xpath("./td[3]/@title")[0],order_address,order_price,)
+
+
+# product_name(mulit_html)
+res_all = session.get(url=all_url,headers=headers).text
+res_all_dict = json.loads(res_all)
+order_list = res_all_dict['ResultList']
+for i in range(len(order_list)):
+    orderNo = order_list[i]['OrderNo']
+    if orderNo.startswith('DD'):
+        product_detail(orderNo)
 
 
